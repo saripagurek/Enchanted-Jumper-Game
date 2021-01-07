@@ -6,6 +6,8 @@ import time
 
 #Set Up
 pygame.init()
+clock = pygame.time.Clock()
+fps = 60
 screenwidth = 1000
 screenheight = 800
 screen=pygame.display.set_mode((screenwidth, screenheight))
@@ -18,32 +20,23 @@ x = 5
 y = 623 #screenheight - tile_size - player.width
 move_x = 5
 tile_size = 100
-win = 0
-
 
 #Load sprites
 background_one = pygame.image.load("data/background_CURVE2.png")
-home = pygame.image.load("data/home1.png")
+home = pygame.image.load("data/homeFinal1.png")
 menu = pygame.image.load("data/levels1.png")
 lose = pygame.image.load("data/lose1.png")
+win = pygame.image.load("data/win.png")
 
 block_img = pygame.image.load("data/grass_CURVE.png")
 diamond_img = pygame.image.load("data/diamond5.png")
+shroom1 = pygame.image.load("data/shroom1A.png")
+shroom2 = pygame.image.load("data/shroom2.png")
+shroom3 = pygame.image.load("data/shroom3.png")
+homeButton = pygame.image.load("data/homeButton.png")
+spike = pygame.image.load("data/spike.png")
 
-#Functions
-def fail():
-    player.rect.x = 5
-    player.rect.y = 1000
-    screen.blit(lose, (0,0))
-    #menu_button.draw(screen)
-
-def win():
-    pygame.time.wait(300)
-    player.rect.x = 5
-    player.rect.y = 1000
-    screen.blit(lose, (0,0))
-    #menu_button.draw(screen)
-
+#Classes
 class Button():
     def __init__(self, color, hover_color, x, y, width, height, text, clicked):
         self.color = color
@@ -55,16 +48,11 @@ class Button():
         self.default_color = color
         self.hover_color = hover_color
         self.clicked = clicked
-        #self.button_list
-
-        #for button in button_list:
-            #button = (img, img_rect) #store image and image rectangle in variable
-            #self.tile_list.append(button) #Add variable^ to list
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height), 0)
         if self.text != '':
-            font = pygame.font.SysFont('timesnewroman', 25)
+            font = pygame.font.Font("data/NewYork.ttf", 25)
             text = font.render(self.text, 1, (0, 0, 0))
             screen.blit(text, (self.x + (self.width/2 - text.get_width()/2), self.y + (self.height/2 - text.get_height()/2)))
 
@@ -85,6 +73,7 @@ class Player():
         self.height = self.image.get_height()
         self.move_y = 0
         self.jumped = False
+        self.gravity = 0
 
     def update(self):
         #change delta x/y with arrow keys
@@ -103,10 +92,31 @@ class Player():
             dx += move_x
 
         #gravity
-        self.move_y += 1
-        if self.move_y > 10:
-            self.move_y = 10
-        dy += self.move_y
+        if self.gravity == 0:
+            self.move_y += 1
+            if self.move_y > 10:
+                self.move_y = 10
+            dy += self.move_y
+        elif self.gravity == 1:
+            self.move_y += 1
+            if self.move_y > 10:
+                self.move_y = 10
+            dy -= self.move_y
+
+            #diamond collision
+        if pygame.sprite.spritecollide(self, state.level.diamond_group, False):
+            state.level = winScreen()
+
+        if pygame.sprite.spritecollide(self, state.level.spike_group, False):
+            state.level = fail()
+
+        #mushrooms
+        if pygame.sprite.spritecollide(self, state.level.shroom1_group, False):
+            self.gravity = 1
+        if pygame.sprite.spritecollide(self, state.level.shroom2_group, False):
+            self.gravity = 0
+        if pygame.sprite.spritecollide(self, state.level.shroom3_group, False):
+            self.gravity = 0
 
         #player collision
         for tile in state.level.tile_list:
@@ -115,17 +125,16 @@ class Player():
                     dx = 0
             #y collision
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                #if collision above (jumping)
-                if self.move_y < 0:
+                player_center = (self.rect.top + self.rect.bottom) / 2
+                block_center = (tile[1].top + tile[1].bottom) / 2
+
+                if player_center > block_center: #player is below block
                     dy = tile[1].bottom - self.rect.top
-                    self.move_y = 0 #don't stick to bottom of blocks
-                #if collision below (falling)
-                elif self.move_y > 0:
+                    self.move_y = 0
+
+                if player_center < block_center:# player is above block
                     dy = tile[1].top - self.rect.bottom
                     self.move_y = 0
-        #diamond collision
-        if pygame.sprite.spritecollide(self, state.level.diamond_group, False):
-            win()
 
         #update player location
         self.rect.x += dx
@@ -133,11 +142,14 @@ class Player():
 
         #falling off screen
         if self.rect.bottom > screenheight:
-            fail()
+            state.level = fail()
+            print('bottom')
+        if self.rect.top < -100:
+            state.level = fail()
+            print('top')
 
         #draw Player
         screen.blit(self.image, self.rect)#draw player on screen
-        #pygame.draw.rect(screen, (255, 0, 0), self.rect, 2)
 
 class Level():
     def __init__(self, data, image, buttons):
@@ -146,6 +158,10 @@ class Level():
         self.tile_list = []
         self.buttons = buttons
         self.diamond_group = pygame.sprite.Group()
+        self.shroom1_group = pygame.sprite.Group()
+        self.shroom2_group = pygame.sprite.Group()
+        self.shroom3_group = pygame.sprite.Group()
+        self.spike_group = pygame.sprite.Group()
 
         rowNum = 0 #Count which row
         for row in data:
@@ -158,20 +174,38 @@ class Level():
                      img_rect.y = rowNum * tile_size
                      tile = (img, img_rect, type) #store image and image rectangle in variable
                      self.tile_list.append(tile) #Add variable^ to list
-                if tile == 2: #for each 1 in level_data, load block img
+                if tile == 2: #for each 1 in level_data, load diamond img
                      diamond = Diamond(columnNum * tile_size, rowNum * tile_size)
                      self.diamond_group.add(diamond)
+                if tile == 3: #for each 1 in level_data, load green mushroom img
+                     shroom1 = Shroom1(columnNum * tile_size, rowNum * tile_size)
+                     self.shroom1_group.add(shroom1)
+                if tile == 4: #for each 1 in level_data, load blue mushroom img
+                     shroom2 = Shroom2(columnNum * tile_size, rowNum * tile_size)
+                     self.shroom2_group.add(shroom2)
+                if tile == 5: #for each 1 in level_data, load pink mushroom img
+                     shroom3 = Shroom3(columnNum * tile_size, rowNum * tile_size)
+                     self.shroom3_group.add(shroom3)
+                if tile == 6: #for each 1 in level_data, load spike img
+                     spike = Spike(columnNum * tile_size, rowNum * tile_size)
+                     self.spike_group.add(spike)
                 columnNum += 1 #increase row & column by one (loop)
             rowNum += 1
     def draw(self):
         screen.blit(self.image, (0,0))
         self.diamond_group.draw(screen)
+        self.shroom1_group.draw(screen)
+        self.shroom2_group.draw(screen)
+        self.shroom3_group.draw(screen)
+
+        self.spike_group.update()
+        self.spike_group.draw(screen)
+
         for button in self.buttons:
             button.draw(screen)
 
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
-            #pygame.draw.rect(screen, (255, 0, 0), tile[1], 2)
 
 class Diamond(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -180,6 +214,47 @@ class Diamond(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+
+class Shroom1(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = shroom1
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+class Shroom2(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = shroom2
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+class Shroom3(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = shroom3
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+class Spike(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = spike
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.move_direction = 1
+        self.move_counter = 0
+
+    def update(self):
+        self.rect.x += self.move_direction
+        self.move_counter += 1
+        if abs(self.move_counter) > 100:
+            self.move_direction *= -1
+            self.move_counter *= -1
 
 class State():
     def __init__(self, level):
@@ -192,12 +267,12 @@ class State():
 #Level data, where platform blocks are located
 level_data = [
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-[0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+[0, 0, 0, 5, 0, 0, 1, 1, 0, 0],
 [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+[1, 1, 0, 0, 0, 0, 0, 0, 6, 0],
 [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-[0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+[0, 3, 1, 0, 0, 0, 0, 0, 0, 0],
 [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
 ]
 
@@ -223,106 +298,136 @@ menu_data = [
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ]
 
+win_data = [
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+]
+
 level2_data = [
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
-[2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 2, 0, 0, 1, 1, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 [0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+[6, 0, 0, 3, 0, 0, 0, 1, 1, 0],
+[1, 0, 0, 0, 0, 6, 0, 0, 0, 0],
+[0, 5, 0, 0, 1, 1, 0, 0, 4, 0],
 [1, 1, 0, 0, 0, 0, 0, 0, 1, 1],
 ]
 
 level3_data = [
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 2, 0],
+[0, 1, 0, 0, 0, 0, 0, 0, 5, 0],
+[0, 0, 0, 0, 4, 0, 0, 0, 1, 1],
+[1, 0, 0, 0, 6, 0, 0, 0, 3, 0],
+[0, 0, 0, 1, 1, 1, 0, 1, 0, 0],
+[0, 0, 3, 0, 0, 0, 1, 0, 2, 0],
 [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
 [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ]
 
 level4_data = [
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[5, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+[0, 4, 6, 0, 0, 0, 0, 0, 0, 0],
 [0, 1, 1, 1, 0, 0, 1, 1, 0, 0],
-[0, 0, 0, 1, 0, 0, 1, 2, 0, 0],
+[0, 3, 0, 1, 0, 0, 1, 2, 0, 0],
 [1, 1, 0, 0, 0, 0, 1, 1, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 6, 0, 0, 0, 0],
+[1, 0, 0, 0, 0, 0, 0, 0, 3, 0],
 ]
 
-#display = home_data
-#display = Display(home_data) ###
+blank_data = [
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+]
+
 player = Player(x, y)
-#diamond_group = pygame.sprite.Group()
-#level = Level(home_data, home)
-#start_button = Button((173, 131, 201), 290, 420, 400, 60, 'Start Game')
-#home_button = Button((173, 131, 201), 20, 20, 60, 60, 'Home')
-#menu_button = Button((173, 131, 201), 290, 420, 400, 60, 'Levels Menu')
-#level1_button = Button((173, 131, 201), 300, 280, 400, 60, 'Level One')
-#level2_button = Button((236, 111, 111), 300, 380, 400, 60, 'Level Two')
-#level3_button = Button((159, 236, 105), 300, 480, 400, 60, 'Level Three')
-#level4_button = Button((149, 218, 197), 300, 580, 400, 60, 'Level Four')
-
-#button = [
-#(start_button),
-#(menu_button),
-#(level1_button),
-#(level2_button),
-#(level3_button),
-#(level4_button),
-#]
-
 
 def homeScreen():
+    player.gravity = 0
+    player.rect.x = x
+    player.rect.y = y
     return Level(home_data, home, [
         Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Start Game', lambda state: (state.set_level(menuScreen()), print('clicked')))
     ])
+def fail():
+    player.gravity = 0
+    player.rect.x = 5
+    player.rect.y = 1000
+    return Level(blank_data, lose, [
+        Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Levels Menu', lambda state: (state.set_level(menuScreen()), print('clicked'))),
+        Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+    ])
+
+def winScreen():
+    player.gravity = 0
+    return Level(win_data, win, [
+        Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Levels Menu', lambda state: (state.set_level(menuScreen()), print('clicked'))),
+        Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+    ])
 def menuScreen():
-    global level
     player.rect.x = x
     player.rect.y = y
-    print('menu')
+    player.gravity = 0
+    screen.blit(homeButton, (5, 100))
     return Level(menu_data, menu, [
-        #Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Levels Menu', lambda: (level := menuScreen())),
         Button((173, 131, 201), (146, 106, 173), 300, 280, 400, 60, 'Level One', lambda state: (state.set_level(levelOne()))),
         Button((236, 111, 111), (210, 82, 82), 300, 380, 400, 60, 'Level Two', lambda state: (state.set_level(levelTwo()))),
         Button((159, 236, 105), (115, 187, 65), 300, 480, 400, 60, 'Level Three', lambda state: (state.set_level(levelThree()))),
         Button((149, 218, 197), (92, 185, 157), 300, 580, 400, 60, 'Level Four', lambda state: (state.set_level(levelFour()))),
+        Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
     ])
 def levelOne():
     player.rect.x = x
     player.rect.y = y
-    return Level(level_data, background_one, [])
+    player.gravity = 0
+    return Level(level_data, background_one, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+    ])
 def levelTwo():
     player.rect.x = x
     player.rect.y = y
-    return Level(level2_data, background_one, [])
+    player.gravity = 0
+    return Level(level2_data, background_one, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+    ])
 def levelThree():
     player.rect.x = x
     player.rect.y = y
-    return Level(level3_data, background_one, [])
+    player.gravity = 0
+    return Level(level3_data, background_one, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+    ])
 def levelFour():
     player.rect.x = x
     player.rect.y = y
-    return Level(level4_data, background_one, [])
+    player.gravity = 0
+    return Level(level4_data, background_one, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+    ])
 
 state = State(homeScreen())
 #Infinite loop
 while 1:
+    clock.tick(fps)
     #clear the screen before drawing it again
     screen.fill(0)
     state.level.draw()
+    screen.blit(homeButton, (5, 5))
     #update the screen
     player.update()
-    #level.diamond_group.draw(screen)
-
-    #display.update()
     pygame.display.update()
     #loop through the events
     for event in pygame.event.get():
