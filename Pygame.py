@@ -6,12 +6,10 @@ import time
 
 #Set Up
 pygame.init()
-clock = pygame.time.Clock()
-fps = 60
 screenwidth = 1000
 screenheight = 800
 screen=pygame.display.set_mode((screenwidth, screenheight))
-pygame.display.set_caption("Sari Pagurek Pygame")
+pygame.display.set_caption("Enchanted Jumper")
 keys = pygame.key.get_pressed()
 mousePosition = pygame.mouse.get_pos()
 
@@ -22,7 +20,11 @@ move_x = 5
 tile_size = 100
 
 #Load sprites
-background_one = pygame.image.load("data/background_CURVE2.png")
+background_one = pygame.image.load("data/background_level1A.png")
+background_oneB = pygame.image.load("data/background_CURVE2.png")
+background_two = pygame.image.load("data/background_level2.png")
+background_three = pygame.image.load("data/background_level3B.png")
+background_four = pygame.image.load("data/background_level4B.png")
 home = pygame.image.load("data/homeFinal1.png")
 menu = pygame.image.load("data/levels1.png")
 lose = pygame.image.load("data/lose1.png")
@@ -31,10 +33,11 @@ win = pygame.image.load("data/win.png")
 block_img = pygame.image.load("data/grass_CURVE.png")
 diamond_img = pygame.image.load("data/diamond5.png")
 shroom1 = pygame.image.load("data/shroom1A.png")
-shroom2 = pygame.image.load("data/shroom2.png")
+shroom1Highlight = pygame.image.load("data/shroom1Highlight.png")
 shroom3 = pygame.image.load("data/shroom3.png")
+shroom3Highlight = pygame.image.load("data/shroom3Highlight.png")
 homeButton = pygame.image.load("data/homeButton.png")
-spike = pygame.image.load("data/spike.png")
+spike = pygame.image.load("data/spike2.png")
 
 #Classes
 class Button():
@@ -97,11 +100,15 @@ class Player():
             if self.move_y > 10:
                 self.move_y = 10
             dy += self.move_y
+            img = pygame.image.load("data/playerCURVE.png") #load sprite
+            self.image = pygame.transform.scale(img, (55, 77)) #scale to tile_size
         elif self.gravity == 1:
             self.move_y += 1
             if self.move_y > 10:
                 self.move_y = 10
             dy -= self.move_y
+            img = pygame.image.load("data/playerFLIP.png") #load sprite
+            self.image = pygame.transform.scale(img, (55, 77)) #scale to tile_size
 
             #diamond collision
         if pygame.sprite.spritecollide(self, state.level.diamond_group, False):
@@ -113,10 +120,11 @@ class Player():
         #mushrooms
         if pygame.sprite.spritecollide(self, state.level.shroom1_group, False):
             self.gravity = 1
-        if pygame.sprite.spritecollide(self, state.level.shroom2_group, False):
-            self.gravity = 0
+            shroom1 = pygame.image.load("data/shroom1Highlight.png")
+
         if pygame.sprite.spritecollide(self, state.level.shroom3_group, False):
             self.gravity = 0
+            #shroom3.image = shroom3Highlight
 
         #player collision
         for tile in state.level.tile_list:
@@ -141,12 +149,10 @@ class Player():
         self.rect.y += dy
 
         #falling off screen
-        if self.rect.bottom > screenheight:
+        if self.rect.bottom > (screenheight + 20):
             state.level = fail()
-            print('bottom')
         if self.rect.top < -100:
             state.level = fail()
-            print('top')
 
         #draw Player
         screen.blit(self.image, self.rect)#draw player on screen
@@ -159,7 +165,7 @@ class Level():
         self.buttons = buttons
         self.diamond_group = pygame.sprite.Group()
         self.shroom1_group = pygame.sprite.Group()
-        self.shroom2_group = pygame.sprite.Group()
+        #self.shroom2_group = pygame.sprite.Group()
         self.shroom3_group = pygame.sprite.Group()
         self.spike_group = pygame.sprite.Group()
 
@@ -180,9 +186,6 @@ class Level():
                 if tile == 3: #for each 1 in level_data, load green mushroom img
                      shroom1 = Shroom1(columnNum * tile_size, rowNum * tile_size)
                      self.shroom1_group.add(shroom1)
-                if tile == 4: #for each 1 in level_data, load blue mushroom img
-                     shroom2 = Shroom2(columnNum * tile_size, rowNum * tile_size)
-                     self.shroom2_group.add(shroom2)
                 if tile == 5: #for each 1 in level_data, load pink mushroom img
                      shroom3 = Shroom3(columnNum * tile_size, rowNum * tile_size)
                      self.shroom3_group.add(shroom3)
@@ -195,7 +198,6 @@ class Level():
         screen.blit(self.image, (0,0))
         self.diamond_group.draw(screen)
         self.shroom1_group.draw(screen)
-        self.shroom2_group.draw(screen)
         self.shroom3_group.draw(screen)
 
         self.spike_group.update()
@@ -219,14 +221,6 @@ class Shroom1(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
         self.image = shroom1
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-
-class Shroom2(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = shroom2
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -310,20 +304,20 @@ win_data = [
 ]
 
 level2_data = [
+[0, 0, 0, 0, 0, 0, 2, 0, 0, 0],
+[0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 2, 0, 0, 1, 1, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+[0, 0, 1, 1, 0, 0, 0, 0, 5, 0],
 [6, 0, 0, 3, 0, 0, 0, 1, 1, 0],
 [1, 0, 0, 0, 0, 6, 0, 0, 0, 0],
-[0, 5, 0, 0, 1, 1, 0, 0, 4, 0],
+[0, 0, 0, 0, 1, 1, 0, 0, 5, 0],
 [1, 1, 0, 0, 0, 0, 0, 0, 1, 1],
 ]
 
-level3_data = [
+level7_data = [
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 [0, 1, 0, 0, 0, 0, 0, 0, 5, 0],
-[0, 0, 0, 0, 4, 0, 0, 0, 1, 1],
+[0, 0, 0, 0, 5, 0, 0, 0, 1, 1],
 [1, 0, 0, 0, 6, 0, 0, 0, 3, 0],
 [0, 0, 0, 1, 1, 1, 0, 1, 0, 0],
 [0, 0, 3, 0, 0, 0, 1, 0, 2, 0],
@@ -334,12 +328,56 @@ level3_data = [
 level4_data = [
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 [5, 0, 0, 1, 1, 1, 0, 0, 0, 0],
-[0, 4, 6, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 6, 0, 0, 0, 0, 0, 0, 0],
 [0, 1, 1, 1, 0, 0, 1, 1, 0, 0],
 [0, 3, 0, 1, 0, 0, 1, 2, 0, 0],
 [1, 1, 0, 0, 0, 0, 1, 1, 0, 0],
 [0, 0, 0, 0, 0, 6, 0, 0, 0, 0],
 [1, 0, 0, 0, 0, 0, 0, 0, 3, 0],
+]
+
+level5_data = [
+[0, 0, 1, 1, 1, 0, 0, 1, 1, 1],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 5],
+[0, 0, 0, 1, 1, 1, 0, 0, 6, 0],
+[3, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 6, 5, 0, 0, 3, 0, 6, 0],
+[0, 1, 1, 1, 0, 0, 1, 1, 0, 0],
+[0, 0, 3, 0, 0, 0, 0, 0, 0, 2],
+[1, 1, 0, 0, 0, 1, 0, 0, 6, 0],
+]
+
+level6_data = [
+[0, 0, 0, 5, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 3, 0, 0, 0, 0],
+[0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+[0, 2, 1, 1, 0, 0, 5, 0, 6, 0],
+[1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+[0, 0, 3, 0, 6, 0, 0, 0, 0, 0],
+[0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+]
+
+level3_data = [
+[0, 1, 1, 1, 0, 0, 0, 0, 1, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[5, 0, 0, 0, 0, 0, 5, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+[0, 0, 6, 0, 0, 6, 0, 0, 0, 0],
+[0, 0, 0, 0, 1, 1, 1, 0, 0, 3],
+[0, 3, 0, 0, 0, 0, 0, 0, 0, 2],
+[1, 0, 6, 0, 0, 0, 0, 0, 0, 0],
+]
+
+level8_data = [
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[2, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+[0, 0, 0, 0, 6, 0, 0, 5, 0, 0],
+[1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+[0, 3, 0, 0, 0, 0, 6, 0, 0, 3],
+[0, 6, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0, 0, 0, 6, 0],
+[1, 1, 1, 0, 1, 1, 0, 1, 1, 1],
 ]
 
 blank_data = [
@@ -360,22 +398,22 @@ def homeScreen():
     player.rect.x = x
     player.rect.y = y
     return Level(home_data, home, [
-        Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Start Game', lambda state: (state.set_level(menuScreen()), print('clicked')))
+        Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Start Game', lambda state: (state.set_level(menuScreen())))
     ])
 def fail():
     player.gravity = 0
     player.rect.x = 5
     player.rect.y = 1000
     return Level(blank_data, lose, [
-        Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Levels Menu', lambda state: (state.set_level(menuScreen()), print('clicked'))),
-        Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+        Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Levels Menu', lambda state: (state.set_level(menuScreen()))),
+        Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
     ])
 
 def winScreen():
     player.gravity = 0
     return Level(win_data, win, [
-        Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Levels Menu', lambda state: (state.set_level(menuScreen()), print('clicked'))),
-        Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+        Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Levels Menu', lambda state: (state.set_level(menuScreen()))),
+        Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
     ])
 def menuScreen():
     player.rect.x = x
@@ -387,45 +425,82 @@ def menuScreen():
         Button((236, 111, 111), (210, 82, 82), 300, 380, 400, 60, 'Level Two', lambda state: (state.set_level(levelTwo()))),
         Button((159, 236, 105), (115, 187, 65), 300, 480, 400, 60, 'Level Three', lambda state: (state.set_level(levelThree()))),
         Button((149, 218, 197), (92, 185, 157), 300, 580, 400, 60, 'Level Four', lambda state: (state.set_level(levelFour()))),
-        Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+        Button((173, 131, 201), (146, 106, 173), 705, 610, 30, 30, '>', lambda state: (state.set_level(menuScreen2()))),
+        Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
+    ])
+def menuScreen2():
+    player.gravity = 0
+    return Level(menu_data, menu, [
+        Button((149, 218, 197), (92, 185, 157), 300, 280, 400, 60, 'Level Five', lambda state: (state.set_level(levelFive()))),
+        Button((159, 236, 105), (115, 187, 65), 300, 380, 400, 60, 'Level Six', lambda state: (state.set_level(levelSix()))),
+        Button((236, 111, 111), (210, 82, 82), 300, 480, 400, 60, 'Level Seven', lambda state: (state.set_level(levelSeven()))),
+        Button((173, 131, 201), (146, 106, 173), 300, 580, 400, 60, 'Level Eight', lambda state: (state.set_level(levelEight()))),
+        Button((173, 131, 201), (146, 106, 173), 265, 610, 30, 30, '<', lambda state: (state.set_level(menuScreen()))),
+        Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
     ])
 def levelOne():
     player.rect.x = x
     player.rect.y = y
     player.gravity = 0
     return Level(level_data, background_one, [
-    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
     ])
 def levelTwo():
     player.rect.x = x
     player.rect.y = y
     player.gravity = 0
-    return Level(level2_data, background_one, [
-    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+    return Level(level2_data, background_two, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
     ])
 def levelThree():
     player.rect.x = x
     player.rect.y = y
     player.gravity = 0
-    return Level(level3_data, background_one, [
-    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+    return Level(level3_data, background_three, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
     ])
 def levelFour():
     player.rect.x = x
     player.rect.y = y
     player.gravity = 0
-    return Level(level4_data, background_one, [
-    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '', lambda state: (state.set_level(homeScreen()))),
+    return Level(level4_data, background_four, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
+    ])
+def levelFive():
+    player.rect.x = x
+    player.rect.y = y
+    player.gravity = 0
+    return Level(level5_data, background_three, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
+    ])
+def levelSix():
+    player.rect.x = x
+    player.rect.y = y
+    player.gravity = 0
+    return Level(level6_data, background_two, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
+    ])
+def levelSeven():
+    player.rect.x = x
+    player.rect.y = y
+    player.gravity = 0
+    return Level(level7_data, background_four, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
+    ])
+def levelEight():
+    player.rect.x = x
+    player.rect.y = y
+    player.gravity = 0
+    return Level(level8_data, background_one, [
+    Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
     ])
 
 state = State(homeScreen())
 #Infinite loop
 while 1:
-    clock.tick(fps)
     #clear the screen before drawing it again
     screen.fill(0)
     state.level.draw()
-    screen.blit(homeButton, (5, 5))
     #update the screen
     player.update()
     pygame.display.update()
