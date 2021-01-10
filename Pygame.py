@@ -23,7 +23,7 @@ tile_size = 100
 background_one = pygame.image.load("data/background_level1A.png")
 background_oneB = pygame.image.load("data/background_CURVE2.png")
 background_two = pygame.image.load("data/background_level2.png")
-background_three = pygame.image.load("data/background_level3B.png")
+background_three = pygame.image.load("data/background3e.png")
 background_four = pygame.image.load("data/background_level4B.png")
 home = pygame.image.load("data/homeFinal1.png")
 menu = pygame.image.load("data/levels1.png")
@@ -38,6 +38,12 @@ shroom3 = pygame.image.load("data/shroom3.png")
 shroom3Highlight = pygame.image.load("data/shroom3Highlight.png")
 homeButton = pygame.image.load("data/homeButton.png")
 spike = pygame.image.load("data/spike2.png")
+
+jumpSound = pygame.mixer.Sound("data/jumpSound.wav")
+mushroomSound = pygame.mixer.Sound("data/mushroomSound2.wav")
+levelSound = pygame.mixer.Sound("data/level.wav")
+diamondSound = pygame.mixer.Sound("data/diamond3.wav")
+loseSound = pygame.mixer.Sound("data/lose.wav")
 
 #Classes
 class Button():
@@ -87,6 +93,7 @@ class Player():
         if key[pygame.K_SPACE] and self.jumped == False and self.rect.y > move_x:
             self.move_y = -15
             self.jumped = True
+            jumpSound.play()
         if key[pygame.K_SPACE] == False:
             self.jumped = False
         if key[pygame.K_LEFT] and self.rect.x > move_x:
@@ -121,9 +128,11 @@ class Player():
         if pygame.sprite.spritecollide(self, state.level.shroom1_group, False):
             self.gravity = 1
             shroom1 = pygame.image.load("data/shroom1Highlight.png")
+            mushroomSound.play()
 
         if pygame.sprite.spritecollide(self, state.level.shroom3_group, False):
             self.gravity = 0
+            mushroomSound.play()
             #shroom3.image = shroom3Highlight
 
         #player collision
@@ -401,6 +410,7 @@ def homeScreen():
         Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Start Game', lambda state: (state.set_level(menuScreen())))
     ])
 def fail():
+    loseSound.play()
     player.gravity = 0
     player.rect.x = 5
     player.rect.y = 1000
@@ -410,6 +420,7 @@ def fail():
     ])
 
 def winScreen():
+    diamondSound.play()
     player.gravity = 0
     return Level(win_data, win, [
         Button((173, 131, 201), (146, 106, 173), 290, 420, 400, 60, 'Levels Menu', lambda state: (state.set_level(menuScreen()))),
@@ -491,7 +502,7 @@ def levelEight():
     player.rect.x = x
     player.rect.y = y
     player.gravity = 0
-    return Level(level8_data, background_one, [
+    return Level(level8_data, background_oneB, [
     Button((236, 111, 111), (210, 82, 82), 5, 5, 50, 50, '<', lambda state: (state.set_level(homeScreen()))),
     ])
 
@@ -516,6 +527,7 @@ while 1:
             for button in state.level.buttons:
                 if button.hover(mousePosition):
                     button.clicked(state)
+                    levelSound.play()
 
         if event.type == pygame.MOUSEMOTION:
             for button in state.level.buttons:
