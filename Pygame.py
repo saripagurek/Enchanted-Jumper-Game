@@ -507,6 +507,8 @@ def levelEight():
     ])
 
 state = State(homeScreen())
+pygame.time.set_timer(pygame.USEREVENT+1, int(1000/15))
+
 #Infinite loop
 while 1:
     #clear the screen before drawing it again
@@ -535,3 +537,7 @@ while 1:
                     button.color = button.hover_color
                 else:
                     button.color = button.default_color
+
+        if event.type == pygame.USEREVENT+1:
+            player.update()
+            pygame.display.update()
