@@ -1,5 +1,15 @@
 # SariPygame
 
+Prequisites:
+-Prerequisite: have python3 installed
+
+Dependencies:
+-Install dependecies ```pip3 install pygame```
+
+Running the Game:
+- Run ```python3 Pygame.py```
+
+
 Game instructions:
 
 -Your goal of each level is to enter the Enchanted Forest and retrieve the diamond.
