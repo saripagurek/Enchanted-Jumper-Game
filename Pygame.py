@@ -16,7 +16,7 @@ mousePosition = pygame.mouse.get_pos()
 #Variables
 x = 5
 y = 623 #screenheight - tile_size - player.width
-move_x = 5
+move_x = 2
 tile_size = 100
 
 #Load sprites
@@ -507,7 +507,7 @@ def levelEight():
     ])
 
 state = State(homeScreen())
-pygame.time.set_timer(pygame.USEREVENT+1, int(1000/15))
+#pygame.time.set_timer(pygame.USEREVENT+1, int(1000/5))
 
 #Infinite loop
 while 1:
@@ -538,6 +538,6 @@ while 1:
                 else:
                     button.color = button.default_color
 
-        if event.type == pygame.USEREVENT+1:
-            player.update()
-            pygame.display.update()
+        #if event.type == pygame.USEREVENT+1:
+        #    player.update()
+        #    pygame.display.update()
